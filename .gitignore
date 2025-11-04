@@ -24,3 +24,8 @@ ENV/
 /doc/source/reference/api
 !yfinance.css
 !/doc/source/development/assets/branches.png
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
+.codacy/
