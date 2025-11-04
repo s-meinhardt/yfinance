@@ -12,6 +12,7 @@ The `Sector` and `Industry` modules allow you to access the sector and industry 
    :toctree: api/
 
    EquityQuery
+   ETFQuery
    FundQuery
    screen
 
@@ -20,6 +21,10 @@ The `Sector` and `Industry` modules allow you to access the sector and industry 
       supported operand values for query
    :attr:`EquityQuery.valid_values <yfinance.EquityQuery.valid_values>`
       supported `EQ query operand parameters`
+   :attr:`ETFQuery.valid_fields <yfinance.ETFQuery.valid_fields>`
+      supported operand values for query
+   :attr:`ETFQuery.valid_values <yfinance.ETFQuery.valid_values>`
+      supported `ETF query operand parameters`
    :attr:`FundQuery.valid_fields <yfinance.FundQuery.valid_fields>`
       supported operand values for query
    :attr:`FundQuery.valid_values <yfinance.FundQuery.valid_values>`

@@ -31,10 +31,11 @@ import multitasking as _multitasking
 import pandas as _pd
 from curl_cffi import requests
 
-from . import Ticker, utils
+from . import utils
 from .data import YfData
 from . import shared
 from .const import _SENTINEL_
+
 
 @utils.log_indent_decorator
 def download(tickers, start=None, end=None, actions=False, threads=True,
@@ -278,6 +279,8 @@ def _download_one(ticker, start=None, end=None,
                   keepna=False, timeout=10):
     data = None
     try:
+        # Import here to avoid circular import at module level
+        from .ticker import Ticker
         data = Ticker(ticker).history(
                 period=period, interval=interval,
                 start=start, end=end, prepost=prepost,
