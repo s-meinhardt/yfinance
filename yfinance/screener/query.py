@@ -1,218 +1,199 @@
-from abc import ABC, abstractmethod
 import numbers
-from typing import List, Union, Dict, TypeVar, Tuple
+import warnings
+from abc import ABC, abstractmethod
+from collections.abc import Collection, Sequence
+from typing import Any, Literal, Optional, Union
 
-from yfinance.const import EQUITY_SCREENER_EQ_MAP, EQUITY_SCREENER_FIELDS
-from yfinance.const import FUND_SCREENER_EQ_MAP, FUND_SCREENER_FIELDS
+from requests import Session
+
+from yfinance.const import _QUERY1_URL_, _SENTINEL_
+from yfinance.data import YfData
 from yfinance.exceptions import YFNotImplementedError
-from ..utils import dynamic_docstring, generate_list_table_from_dict_universal
 
-T = TypeVar('T', bound=Union[str, numbers.Real])
+# Operand = TypeVar("Operand", bound=Union["Query", str, numbers.Real])
 
-class QueryBase(ABC):
-    def __init__(self, operator: str, operand: Union[ List['QueryBase'], Tuple[str, Tuple[Union[str, numbers.Real],  ...]] ]):
-        operator = operator.upper()
 
-        if not isinstance(operand, list):
-            raise TypeError('Invalid operand type')
-        if len(operand) <= 0:
-            raise ValueError('Invalid field for EquityQuery')
-            
-        if operator == 'IS-IN':
-            self._validate_isin_operand(operand)
-        elif operator in {'OR','AND'}: 
-            self._validate_or_and_operand(operand)
-        elif operator == 'EQ': 
-            self._validate_eq_operand(operand)
-        elif operator == 'BTWN': 
-            self._validate_btwn_operand(operand)
-        elif operator in {'GT','LT','GTE','LTE'}: 
-            self._validate_gt_lt(operand)
-        else: 
-            raise ValueError('Invalid Operator Value')
+class Query(ABC):
+    _SCREENER_URL_ = f"{_QUERY1_URL_}/v1/finance/screener"
 
-        self.operator = operator
-        self.operands = operand
+    def __init__(
+        self,
+        operator: str,
+        operands: Sequence[Union["Query", str, int, float]],
+    ):
+        self.operator = operator.upper()
+        self.operands = operands
 
-    @property
-    @abstractmethod
-    def valid_fields(self) -> List:
-        raise YFNotImplementedError('valid_fields() needs to be implemented by child')
+        if not isinstance(operands, Sequence):
+            raise TypeError("Invalid operand type")
+
+        if self.operator == "IS-IN":
+            self._validate_isin_operands()
+        elif self.operator in {"OR", "AND"}:
+            self._validate_or_and_operands()
+        elif self.operator == "EQ":
+            self._validate_eq_operands()
+        elif self.operator == "BTWN":
+            self._validate_btwn_operands()
+        elif self.operator in {"GT", "LT", "GTE", "LTE"}:
+            self._validate_gt_lt_operands()
+        else:
+            raise ValueError("Invalid Operator Value")
 
     @property
     @abstractmethod
-    def valid_values(self) -> Dict:
-        raise YFNotImplementedError('valid_values() needs to be implemented by child')
+    def quote_type(self) -> str:
+        raise YFNotImplementedError("quote_type must be specified by child class")
 
-    def _validate_or_and_operand(self, operand: List['QueryBase']) -> None:
-        if len(operand) <= 1: 
-            raise ValueError('Operand must be length longer than 1')
-        if all(isinstance(e, QueryBase) for e in operand) is False: 
-            raise TypeError(f'Operand must be type {type(self)} for OR/AND')
+    @property
+    @abstractmethod
+    def valid_fields(self) -> dict[str, Collection[str]]:
+        raise YFNotImplementedError("valid_fields() needs to be implemented by child")
 
-    def _validate_eq_operand(self, operand: List[Union[str, numbers.Real]]) -> None:
-        if len(operand) != 2:
-            raise ValueError('Operand must be length 2 for EQ')
-        
-        if  not any(operand[0] in fields_by_type for fields_by_type in self.valid_fields.values()):
-            raise ValueError(f'Invalid field for {type(self)} "{operand[0]}"')
-        if operand[0] in self.valid_values:
-            vv = self.valid_values[operand[0]]
-            if isinstance(vv, dict):
-                # this data structure is slightly different to generate better docs, 
-                # need to unpack here.
-                vv = set().union(*[e for e in vv.values()])
-            if operand[1] not in vv:
-                raise ValueError(f'Invalid EQ value "{operand[1]}"')
-    
-    def _validate_btwn_operand(self, operand: List[Union[str, numbers.Real]]) -> None:
-        if len(operand) != 3: 
-            raise ValueError('Operand must be length 3 for BTWN')
-        if  not any(operand[0] in fields_by_type for fields_by_type in self.valid_fields.values()):
-            raise ValueError(f'Invalid field for {type(self)}')
-        if isinstance(operand[1], numbers.Real) is False:
-            raise TypeError('Invalid comparison type for BTWN')
-        if isinstance(operand[2], numbers.Real) is False:
-            raise TypeError('Invalid comparison type for BTWN')
+    @property
+    @abstractmethod
+    def valid_values(self) -> dict[str, Collection[str]]:
+        raise YFNotImplementedError("valid_values() needs to be implemented by child")
 
-    def _validate_gt_lt(self, operand: List[Union[str, numbers.Real]]) -> None:
-        if len(operand) != 2:
-            raise ValueError('Operand must be length 2 for GT/LT')
-        if  not any(operand[0] in fields_by_type for fields_by_type in self.valid_fields.values()):
-            raise ValueError(f'Invalid field for {type(self)} "{operand[0]}"')
-        if isinstance(operand[1], numbers.Real) is False:
-            raise TypeError('Invalid comparison type for GT/LT')
+    @property
+    def numerical_fields(self) -> list[str]:
+        return [
+            field
+            for category, fields in self.valid_fields.items()
+            if category != "eq_fields"
+            for field in fields
+        ]
 
-    def _validate_isin_operand(self, operand: List['QueryBase']) -> None:
-        if len(operand) < 2:
-            raise ValueError('Operand must be length 2+ for IS-IN')
-        
-        if  not any(operand[0] in fields_by_type for fields_by_type in self.valid_fields.values()):
-            raise ValueError(f'Invalid field for {type(self)} "{operand[0]}"')
-        if operand[0] in self.valid_values:
-            vv = self.valid_values[operand[0]]
-            if isinstance(vv, dict):
-                # this data structure is slightly different to generate better docs, 
-                # need to unpack here.
-                vv = set().union(*[e for e in vv.values()])
-            for i in range(1, len(operand)):
-                if operand[i] not in vv:
-                    raise ValueError(f'Invalid EQ value "{operand[i]}"')
+    def _validate_or_and_operands(self) -> None:
+        if len(self.operands) <= 1:
+            raise ValueError("Operands must have length longer than 1")
+        # This validation prohibits things like EquityQuery('AND', [EquityQuery(...), FundQuery(...)])
+        if not all(isinstance(e, type(self)) for e in self.operands):
+            raise TypeError(
+                f"Operands must be a sequence of objects of type {type(self)}"
+            )
 
-    def to_dict(self) -> Dict:
-        op = self.operator
-        ops = self.operands
-        if self.operator == 'IS-IN':
+    def _validate_eq_operands(self) -> None:
+        if len(self.operands) != 2:
+            raise ValueError("Operands must have length 2 for EQ")
+        self._validate_categorical_operands()
+
+    def _validate_btwn_operands(self) -> None:
+        if len(self.operands) != 3:
+            raise ValueError("Operands must have length 3 for BTWN")
+        self._validate_numerical_operands()
+
+    def _validate_gt_lt_operands(self) -> None:
+        if len(self.operands) != 2:
+            raise ValueError("Operands must have length 2 for GT/LT")
+        self._validate_numerical_operands()
+
+    def _validate_isin_operands(self) -> None:
+        if len(self.operands) < 2:
+            raise ValueError("Operands must be length 2+ for IS-IN")
+        self._validate_categorical_operands()
+
+    def _validate_numerical_operands(self) -> None:
+        if self.operands[0] not in self.numerical_fields:
+            raise ValueError(
+                f'Invalid numerical field for {type(self)} "{self.operands[0]}"'
+            )
+        if not all(isinstance(operand, numbers.Real) for operand in self.operands[1:]):
+            raise TypeError(
+                f'Invalid numerical value in "{self.operands[1:]}" for field "{self.operands[0]}"'
+            )
+
+    def _validate_categorical_operands(self) -> None:
+        if self.operands[0] not in self.valid_values:
+            raise ValueError(
+                f'Invalid categorical field for {type(self)} "{self.operands[0]}"'
+            )
+        if not all(
+            operand in self.valid_values[self.operands[0]]
+            for operand in self.operands[1:]
+        ):
+            raise ValueError(
+                f'Invalid categorical value in "{self.operands[1:]}" for field "{self.operands[0]}"'
+            )
+
+    def to_dict(self) -> dict:
+        operator = self.operator
+        operands = self.operands
+        if self.operator == "IS-IN":
             # Expand to OR of EQ queries
-            op = 'OR'
-            ops = [type(self)('EQ', [self.operands[0], v]) for v in self.operands[1:]]
+            operator = "OR"
+            operands = [
+                type(self)("EQ", [operands[0], operand]) for operand in operands[1:]
+            ]
         return {
-            "operator": op,
-            "operands": [o.to_dict() if isinstance(o, QueryBase) else o for o in ops]
+            "operator": operator,
+            "operands": [
+                operand.to_dict() if isinstance(operand, Query) else operand
+                for operand in operands
+            ],
         }
 
     def __repr__(self, indent=0) -> str:
         indent_str = "  " * indent
         class_name = self.__class__.__name__
 
-        if isinstance(self.operands, list):
-            # For list operands, check if they contain any QueryBase objects
-            if any(isinstance(op, QueryBase) for op in self.operands):
-                # If there are nested queries, format them with newlines
-                operands_str = ",\n".join(
-                    f"{indent_str}  {op.__repr__(indent + 1) if isinstance(op, QueryBase) else repr(op)}"
-                    for op in self.operands
-                )
-                return f"{class_name}({self.operator}, [\n{operands_str}\n{indent_str}])"
-            else:
-                # For lists of simple types, keep them on one line
-                return f"{class_name}({self.operator}, {repr(self.operands)})"
+        # For list operands, check if they contain any Query objects
+        if any(isinstance(operand, Query) for operand in self.operands):
+            # If there are nested queries, format them with newlines
+            operands_str = ",\n".join(
+                f"{indent_str}  {operand.__repr__(indent + 1) if isinstance(operand, Query) else repr(operand)}"
+                for operand in self.operands
+            )
+            return f"{class_name}({self.operator}, [\n{operands_str}\n{indent_str}])"
         else:
-            # Handle single operand
+            # For lists of simple types, keep them on one line
             return f"{class_name}({self.operator}, {repr(self.operands)})"
 
     def __str__(self) -> str:
         return self.__repr__()
 
+    def screen(
+        self,
+        offset: int = 0,
+        size: int = 25,
+        sortField: str = "ticker",
+        sortType: Literal["ASC", "DESC"] = "DESC",
+        userId: str = "",
+        userIdType: str = "guid",
+        session: Optional[Session] = None,
+        proxy: Any = _SENTINEL_,
+    ) -> list[dict]:
+        if proxy is not _SENTINEL_:
+            warnings.warn(
+                "Set proxy via new config function: yf.set_config(proxy=proxy)",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            _data = YfData(session=session, proxy=proxy)
+        else:
+            _data = YfData(session=session)
 
-class EquityQuery(QueryBase):
-    """
-    The `EquityQuery` class constructs filters for stocks based on specific criteria such as region, sector, exchange, and peer group.
+        if offset < 0:
+            raise ValueError("The query offset must be a non-negative integer.")
+        if size > 250 or size < 1:
+            raise ValueError("The query size must be an integer between 1 and 250.")
 
-    Start with value operations: `EQ` (equals), `IS-IN` (is in), `BTWN` (between), `GT` (greater than), `LT` (less than), `GTE` (greater or equal), `LTE` (less or equal).
-
-    Combine them with logical operations: `AND`, `OR`.
-
-    Example:
-        Predefined Yahoo query `aggressive_small_caps`:
-        
-        .. code-block:: python
-
-            from yfinance import EquityQuery
-
-            EquityQuery('and', [
-                EquityQuery('is-in', ['exchange', 'NMS', 'NYQ']), 
-                EquityQuery('lt', ["epsgrowth.lasttwelvemonths", 15])
-            ])
-    """
-
-    @dynamic_docstring({"valid_operand_fields_table": generate_list_table_from_dict_universal(EQUITY_SCREENER_FIELDS)})
-    @property
-    def valid_fields(self) -> Dict:
-        """
-        Valid operands, grouped by category.
-        {valid_operand_fields_table}
-        """
-        return EQUITY_SCREENER_FIELDS
-    
-    @dynamic_docstring({"valid_values_table": generate_list_table_from_dict_universal(EQUITY_SCREENER_EQ_MAP, concat_keys=['exchange', 'industry'])})
-    @property
-    def valid_values(self) -> Dict:
-        """
-        Most operands take number values, but some have a restricted set of valid values.
-        {valid_values_table}
-        """
-        return EQUITY_SCREENER_EQ_MAP
-
-
-class FundQuery(QueryBase):
-    """
-    The `FundQuery` class constructs filters for mutual funds based on specific criteria such as region, sector, exchange, and peer group.
-
-    Start with value operations: `EQ` (equals), `IS-IN` (is in), `BTWN` (between), `GT` (greater than), `LT` (less than), `GTE` (greater or equal), `LTE` (less or equal).
-
-    Combine them with logical operations: `AND`, `OR`.
-
-    Example:
-        Predefined Yahoo query `solid_large_growth_funds`:
-        
-        .. code-block:: python
-
-            from yfinance import FundQuery
-            
-            FundQuery('and', [
-                FundQuery('eq', ['categoryname', 'Large Growth']), 
-                FundQuery('is-in', ['performanceratingoverall', 4, 5]), 
-                FundQuery('lt', ['initialinvestment', 100001]), 
-                FundQuery('lt', ['annualreturnnavy1categoryrank', 50]), 
-                FundQuery('eq', ['exchange', 'NAS'])
-            ])
-    """
-    @dynamic_docstring({"valid_operand_fields_table": generate_list_table_from_dict_universal(FUND_SCREENER_FIELDS)})
-    @property
-    def valid_fields(self) -> Dict:
-        """
-        Valid operands, grouped by category.
-        {valid_operand_fields_table}
-        """
-        return FUND_SCREENER_FIELDS
-    
-    @dynamic_docstring({"valid_values_table": generate_list_table_from_dict_universal(FUND_SCREENER_EQ_MAP)})
-    @property
-    def valid_values(self) -> Dict:
-        """
-        Most operands take number values, but some have a restricted set of valid values.
-        {valid_values_table}
-        """
-        return FUND_SCREENER_EQ_MAP
-
+        body = {
+            "quoteType": self.quote_type,
+            "query": self.to_dict(),
+            "offset": offset,
+            "size": size,
+            "sortField": sortField,
+            "sortType": sortType,
+            "userId": userId,
+            "userIdType": userIdType,
+        }
+        params = {
+            "corsDomain": "finance.yahoo.com",
+            "formatted": "false",
+            "lang": "en-US",
+            "region": "US",
+        }
+        response = _data.post(self._SCREENER_URL_, body=body, params=params)
+        response.raise_for_status()
+        return response.json()["finance"]["result"][0]
