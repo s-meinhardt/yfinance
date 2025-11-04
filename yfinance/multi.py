@@ -30,7 +30,7 @@ import multitasking as _multitasking
 import pandas as _pd
 from curl_cffi import requests
 
-from . import Ticker, utils
+from . import utils
 from .data import YfData
 from . import shared
 from .config import YfConfig
@@ -272,6 +272,8 @@ def _download_one(ticker, start=None, end=None,
     backup = YfConfig.network.hide_exceptions
     YfConfig.network.hide_exceptions = False
     try:
+        # Import here to avoid circular import at module level
+        from .ticker import Ticker
         data = Ticker(ticker).history(
                 period=period, interval=interval,
                 start=start, end=end, prepost=prepost,
