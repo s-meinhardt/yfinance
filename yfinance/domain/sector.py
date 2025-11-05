@@ -1,14 +1,14 @@
 from __future__ import print_function
 
-import pandas as _pd
-from typing import Dict, Optional
 import warnings
+from typing import Dict, Optional
 
-from ..const import SECTOR_INDUSTRY_MAPPING_LC, _SENTINEL_
+import pandas as _pd
+
+from ..const import _SENTINEL_, SECTOR_INDUSTRY_MAPPING_LC
 from ..data import YfData
 from ..utils import dynamic_docstring, generate_list_table_from_dict, get_yf_logger
-
-from .domain import Domain, _QUERY_URL_
+from .domain import _QUERY_URL_, Domain
 
 
 class Sector(Domain):
@@ -77,7 +77,7 @@ class Sector(Domain):
     @dynamic_docstring(
         {
             "sector_industry": generate_list_table_from_dict(
-                SECTOR_INDUSTY_MAPPING_LC, bullets=True
+                SECTOR_INDUSTRY_MAPPING_LC, bullets=True
             )
         }
     )
