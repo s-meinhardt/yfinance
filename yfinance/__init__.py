@@ -35,6 +35,7 @@ from .domain.market import Market
 from .config import YfConfig as config
 from .screener.equity_query import EquityQuery
 from .screener.etf_query import ETFQuery
+from .screener.index_query import IndexQuery
 from .screener.fund_query import FundQuery
 from .screener.screener import screen, PREDEFINED_SCREENER_QUERIES
 
@@ -50,6 +51,7 @@ __all__ += [
     "EquityQuery",
     "ETFQuery",
     "FundQuery",
+    "IndexQuery",
     "screen",
     "PREDEFINED_SCREENER_QUERIES",
 ]

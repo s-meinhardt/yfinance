@@ -74,10 +74,10 @@ COMMON_SCREENER_EQ_MAP = {
 }
 
 
-class ETFQuery(Query):
+class IndexQuery(Query):
     """
-    The `ETFQuery` class constructs filters for exchange-traded funds (ETFs) based on
-     specific criteriasuch as region, sector, exchange, and volume.
+    The `IndexQuery` class constructs filters for stock market indices based on
+     specific criteria such as region, sector, exchange, and volume.
 
     Start with value operations: `EQ` (equals), `IS-IN` (is in), `BTWN` (between),
     `GT` (greater than), `LT` (less than), `GTE` (greater or equal), `LTE` (less or equal).
@@ -85,24 +85,24 @@ class ETFQuery(Query):
     Combine them with logical operations: `AND`, `OR`.
 
     Example:
-        Yahoo query `Solid Large Growth ETFs`:
+        Yahoo query `Solid Large Growth Indices`:
 
         .. code-block:: python
 
-            from yfinance import ETFQuery
+            from yfinance import IndexQuery
 
-            ETFQuery('and', [
-                ETFQuery('eq', ['categoryname', 'Large Growth']),
-                ETFQuery('is-in', ['performanceratingoverall', 4, 5]),
-                ETFQuery('lt', ['initialinvestment', 100001]),
-                ETFQuery('lt', ['annualreturnnavy1categoryrank', 50]),
-                ETFQuery('eq', ['exchange', 'NGM'])
+            IndexQuery('and', [
+                IndexQuery('eq', ['categoryname', 'Large Growth']),
+                IndexQuery('is-in', ['performanceratingoverall', 4, 5]),
+                IndexQuery('lt', ['initialinvestment', 100001]),
+                IndexQuery('lt', ['annualreturnnavy1categoryrank', 50]),
+                IndexQuery('eq', ['exchange', 'NGM'])
             ])
     """
 
     @property
     def quote_type(self) -> str:
-        return "ETF"
+        return "INDEX"
 
     @dynamic_docstring(
         {

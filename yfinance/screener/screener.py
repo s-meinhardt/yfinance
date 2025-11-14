@@ -11,6 +11,7 @@ from ..utils import dynamic_docstring, generate_list_table_from_dict_universal
 from .equity_query import EquityQuery
 from .etf_query import ETFQuery
 from .fund_query import FundQuery
+from .index_query import IndexQuery
 from .predifined_queries import PREDEFINED_SCREENER_QUERIES
 from .query import Query
 
@@ -35,7 +36,7 @@ PREDEFINED_SCREENER_BODY_DEFAULTS = {
     }
 )
 def screen(
-    query: Union[str, EquityQuery, FundQuery, ETFQuery],
+    query: Union[str, EquityQuery, FundQuery, ETFQuery, IndexQuery],
     offset: Optional[int] = None,
     size: Optional[int] = None,
     count: Optional[int] = None,
@@ -50,7 +51,7 @@ def screen(
     Run a screen: predefined query, or custom query.
 
     :Parameters:
-        * Defaults only apply if query = EquityQuery, FundQuery or ETFQuery.
+        * Defaults only apply if query = EquityQuery, FundQuery, ETFQuery or IndexQuery.
         query : str | Query:
             The query to execute, either name of predefined or custom query.
             For predefined list run yf.PREDEFINED_SCREENER_QUERIES.keys()
