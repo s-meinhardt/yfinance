@@ -162,7 +162,7 @@ class Query(ABC):
         userIdType: str = "guid",
         session: Optional[Session] = None,
         proxy: Any = _SENTINEL_,
-    ) -> list[dict]:
+    ) -> dict:
         if proxy is not _SENTINEL_:
             warnings.warn(
                 "Set proxy via new config function: yf.set_config(proxy=proxy)",
