@@ -45,7 +45,7 @@ def screen(
     userIdType: str = "guid",
     session: Optional[Session] = None,
     proxy: Any = _SENTINEL_,
-):
+) -> dict:
     """
     Run a screen: predefined query, or custom query.
 
