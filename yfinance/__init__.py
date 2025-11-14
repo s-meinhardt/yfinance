@@ -31,6 +31,7 @@ from .multi import download
 from .screener.equity_query import EquityQuery
 from .screener.etf_query import ETFQuery
 from .screener.fund_query import FundQuery
+from .screener.index_query import IndexQuery
 from .screener.screener import PREDEFINED_SCREENER_QUERIES, screen
 from .search import Search
 from .ticker import Ticker
@@ -63,6 +64,7 @@ __all__ += [
     "EquityQuery",
     "ETFQuery",
     "FundQuery",
+    "IndexQuery",
     "screen",
     "PREDEFINED_SCREENER_QUERIES",
 ]

@@ -14,6 +14,7 @@ The `Sector` and `Industry` modules allow you to access the sector and industry 
    EquityQuery
    ETFQuery
    FundQuery
+   IndexQuery
    screen
 
 .. seealso::
@@ -29,4 +30,7 @@ The `Sector` and `Industry` modules allow you to access the sector and industry 
       supported operand values for query
    :attr:`FundQuery.valid_values <yfinance.FundQuery.valid_values>`
       supported `EQ query operand parameters`
-   
+   :attr:`IndexQuery.valid_fields <yfinance.IndexQuery.valid_fields>`
+      supported operand values for query
+   :attr:`IndexQuery.valid_values <yfinance.IndexQuery.valid_values>`
+      supported `Index query operand parameters`
