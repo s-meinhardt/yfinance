@@ -92,7 +92,7 @@ REGION_EXCHANGE_CODE_MAPPING = {
         "OTC Markets EXMKT": "OEM",
         "OTC Markets OTCQB": "OQB",
         "OTC Markets OTCQX": "OQX",
-        "_PCX": "PCX",
+        "NYSEArca": "PCX",
         "OTC Markets": "PNK",
         "_YHD": "YHD",
         "Chicago Options": "WCB",
