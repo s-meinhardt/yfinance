@@ -47,14 +47,7 @@ warnings.filterwarnings('default', category=DeprecationWarning, module='^yfinanc
 
 __all__ = ['download', 'Market', 'Search', 'Lookup', 'Ticker', 'Tickers', 'enable_debug_mode', 'set_tz_cache_location', 'Sector', 'Industry', 'WebSocket', 'AsyncWebSocket', 'Calendars']
 # screener stuff:
-__all__ += [
-    "EquityQuery",
-    "ETFQuery",
-    "FundQuery",
-    "IndexQuery",
-    "screen",
-    "PREDEFINED_SCREENER_QUERIES",
-]
+__all__ += ['EquityQuery', 'ETFQuery', 'FundQuery', 'IndexQuery', 'screen', 'PREDEFINED_SCREENER_QUERIES']
 
 # Config stuff:
 _NOTSET=object()

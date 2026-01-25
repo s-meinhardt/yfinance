@@ -19,22 +19,11 @@ _SCREENER_URL_ = f"{_QUERY1_URL_}/v1/finance/screener"
 _PREDEFINED_URL_ = f"{_SCREENER_URL_}/predefined/saved"
 
 PREDEFINED_SCREENER_BODY_DEFAULTS = {
-    "offset": 0,
-    "count": 25,
-    "userId": "",
-    "userIdType": "guid",
+    "offset": 0, "count": 25, "userId": "", "userIdType": "guid"
 }
 
 
-@dynamic_docstring(
-    {
-        "predefined_screeners": generate_list_table_from_dict_universal(
-            PREDEFINED_SCREENER_QUERIES,
-            bullets=True,
-            title="Predefined queries (Dec-2024)",
-        )
-    }
-)
+@dynamic_docstring({"predefined_screeners": generate_list_table_from_dict_universal(PREDEFINED_SCREENER_QUERIES, bullets=True, title='Predefined queries (Dec-2024)')})
 def screen(
     query: Union[str, EquityQuery, FundQuery, ETFQuery, IndexQuery],
     offset: Optional[int] = None,
@@ -45,7 +34,6 @@ def screen(
     userId: str = "",
     userIdType: str = "guid",
     session: Optional[Session] = None,
-    proxy: Any = _SENTINEL_,
 ) -> dict:
     """
     Run a screen: predefined query, or custom query.
@@ -107,22 +95,13 @@ def screen(
             userId=userId,
             userIdType=userIdType,
             session=session,
-            proxy=proxy,
         )
         return result
 
     if query not in PREDEFINED_SCREENER_QUERIES:
         raise ValueError(f"Unknown query: {query}")
 
-    if proxy is not _SENTINEL_:
-        warnings.warn(
-            "Set proxy via new config function: yf.set_config(proxy=proxy)",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        _data = YfData(session=session, proxy=proxy)
-    else:
-        _data = YfData(session=session)
+    _data = YfData(session=session)
 
     if count is not None and count > 250:
         raise ValueError("Yahoo limits query count to 250, reduce count.")
