@@ -76,7 +76,7 @@ class Query(ABC):
     def _validate_eq_operands(self) -> None:
         if len(self.operands) != 2:
             raise ValueError("Operands must have length 2 for EQ")
-        self._validate_categorical_operands()
+        # self._validate_categorical_operands()
 
     def _validate_btwn_operands(self) -> None:
         if len(self.operands) != 3:
