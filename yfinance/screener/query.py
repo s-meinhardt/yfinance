@@ -1,16 +1,20 @@
 import numbers
-import warnings
 from abc import ABC, abstractmethod
+import logging
+
 from collections.abc import Collection, Sequence
-from typing import Any, Literal, Optional, Union
+from json import dumps
+from typing import Literal, Optional, Union
 
 from requests import Session
 
-from yfinance.const import _QUERY1_URL_, _SENTINEL_
+from yfinance.const import _QUERY1_URL_
 from yfinance.data import YfData
 from yfinance.exceptions import YFNotImplementedError
 
 # Operand = TypeVar("Operand", bound=Union["Query", str, numbers.Real])
+
+logger = logging.getLogger(__name__)
 
 
 class Query(ABC):
@@ -20,7 +24,9 @@ class Query(ABC):
         self,
         operator: str,
         operands: Sequence[Union["Query", str, int, float]],
+        session: Optional[Session] = None,
     ):
+        self._data = YfData(session=session)
         self.operator = operator.upper()
         self.operands = operands
 
@@ -161,23 +167,26 @@ class Query(ABC):
         userId: str = "",
         userIdType: str = "guid",
         session: Optional[Session] = None,
-        proxy: Any = _SENTINEL_,
     ) -> dict:
-        if proxy is not _SENTINEL_:
-            warnings.warn(
-                "Set proxy via new config function: yf.set_config(proxy=proxy)",
-                DeprecationWarning,
-                stacklevel=2,
+        
+        if session:
+            self._data = YfData(session=session)
+            logger.warning(
+                "Passing a session is deprecated and will be removed in future versions. "
+                "Please pass the session when initializing the query."
             )
-            _data = YfData(session=session, proxy=proxy)
-        else:
-            _data = YfData(session=session)
-
+        
         if offset < 0:
             raise ValueError("The query offset must be a non-negative integer.")
         if size > 250 or size < 1:
             raise ValueError("The query size must be an integer between 1 and 250.")
 
+        params = {
+            "corsDomain": "finance.yahoo.com",
+            "formatted": "false",
+            "lang": "en-US",
+            "region": "US",
+        }
         body = {
             "quoteType": self.quote_type,
             "query": self.to_dict(),
@@ -188,12 +197,7 @@ class Query(ABC):
             "userId": userId,
             "userIdType": userIdType,
         }
-        params = {
-            "corsDomain": "finance.yahoo.com",
-            "formatted": "false",
-            "lang": "en-US",
-            "region": "US",
-        }
-        response = _data.post(self._SCREENER_URL_, body=body, params=params)
+        data = dumps(body, separators=(",", ":"), ensure_ascii=False)
+        response = self._data.post(self._SCREENER_URL_, data=data, params=params)
         response.raise_for_status()
         return response.json()["finance"]["result"][0]
