@@ -27,10 +27,11 @@ import re
 import re as _re
 import sys as _sys
 import threading
+from collections.abc import Collection, Iterable, Mapping
 from functools import wraps
 from inspect import getmembers
 from types import FunctionType
-from typing import List, Optional
+from typing import List, Optional, Union
 import warnings
 
 import numpy as _np
@@ -1142,3 +1143,137 @@ def generate_list_table_from_dict_universal(data: dict, bullets: bool=True, titl
                 table += ' '*5 + f"- {value_str}\n"
 
     return table
+
+
+def extract_values(structure: Union[Collection, Mapping]) -> set:
+    """Recursively extract all values from a nested structure and return them as a set."""
+    values = set()
+
+    if isinstance(structure, Mapping):
+        for value in structure.values():
+            values.update(extract_values(value))
+    elif isinstance(structure, Collection) and not isinstance(structure, str):
+        for item in structure:
+            values.update(extract_values(item))
+    else:
+        try:
+            values.add(structure)
+        except TypeError:
+            # Fallback for unhashable items
+            values.add(repr(structure))
+
+    return values
+
+
+def generate_list_table_from_dict_simple(
+    data: dict, columns: list[str], title: str, bullet_symbol: str = "•"
+) -> str:
+    """
+    Generate a formatted table for docstrings showing permitted keys/values.
+    Uses RST simple table syntax for proper 2-column layout.
+
+    Args:
+        data: Dictionary containing the data to format
+        columns: List of column header names
+        title: Title for the table
+        bullet_symbol: Symbol to use for list items (default: "•" bullet point).
+                      Common alternatives: "-" (hyphen), "*" (asterisk), "▪" (square),
+                      "▸" (triangle), "→" (arrow), or any other Unicode character.
+
+    Returns:
+        RST-formatted table string suitable for inclusion in docstrings
+
+    Example:
+        >>> data = {'fruits': ['apple', 'banana'], 'colors': ['red', 'yellow']}
+        >>> table = generate_list_table_from_dict_simple(
+        ...     data, ['Category', 'Items'], 'My Data', bullet_symbol='→'
+        ... )
+    """
+    if bullet_symbol:
+        bullet_symbol = f"{bullet_symbol} "
+
+    def _format_value(val, indent=0):
+        """Format a value in YAML-like style with line blocks for proper rendering."""
+        prefix = "  " * indent
+        lines = []
+        PRIMITIVE_TYPES = (str, int, float, bool)
+
+        if isinstance(val, PRIMITIVE_TYPES):
+            lines.append(f"{prefix}{val}")
+        elif isinstance(val, Mapping):
+            for k, v in val.items():
+                if isinstance(v, PRIMITIVE_TYPES):
+                    lines.append(f"{prefix}*{k}*: {v}")
+                elif isinstance(v, Mapping):
+                    lines.append(f"{prefix}*{k}*:")
+                    lines.extend(_format_value(v, indent + 1))
+                elif (
+                    isinstance(v, Collection)
+                    and v
+                    and all(isinstance(i, PRIMITIVE_TYPES) for i in v)
+                ):
+                    # Short collection - inline; long collection - bullets
+                    if len(v) <= 3 and all(len(str(i)) < 20 for i in v):
+                        lines.append(f"{prefix}*{k}*: {', '.join(str(i) for i in v)}")
+                    else:
+                        lines.append(f"{prefix}*{k}*:")
+                        lines.extend(_format_value(v, indent + 1))
+                else:
+                    raise ValueError(
+                        f"Unsupported value type in mapping for key '{k}': {type(v)}"
+                    )
+        elif isinstance(val, Collection):
+            items = sorted(val) if isinstance(val, Iterable) else val
+            lines.extend([f"{prefix}{bullet_symbol}{i}" for i in items])
+        else:
+            raise ValueError(f"Unsupported value type: {type(val)}")
+
+        return lines
+
+    # RST table template
+    import textwrap
+
+    table = textwrap.dedent(f"""
+    **{title}:**
+
+    .. table::
+       :widths: 30 70
+
+       {"=" * 28} {"=" * 68}
+       {columns[0]:<28} {columns[1]:<68}
+       {"=" * 28} {"=" * 68}
+    """).rstrip()
+
+    # Add data rows
+    for key in sorted(data.keys()):
+        value_lines = _format_value(data[key])
+        # Add first line with key
+        table += f"\n   {key:<28} | {value_lines[0] if value_lines else '':<66}"
+        # Add remaining lines with line block continuation
+        for line in value_lines[1:]:
+            table += f"\n   {'':<28} | {line:<66}"
+
+    # Close table
+    table += f"\n   {'=' * 28} {'=' * 68}"
+
+    return table
+
+
+def merge_two_level_dicts(dict1: dict, dict2: dict) -> dict:
+    result = dict1.copy()
+    for key, value in dict2.items():
+        if key in result:
+            # If both are sets, merge them
+            if isinstance(value, set) and isinstance(result[key], set):
+                result[key] = result[key] | value
+            # If both are dicts, merge their contents
+            elif isinstance(value, dict) and isinstance(result[key], dict):
+                result[key] = {
+                    k: (result[key].get(k, set()) | v if isinstance(v, set) else v)
+                    if k in result[key]
+                    else v
+                    for k, v in value.items()
+                }
+        else:
+            result[key] = value
+    return result
