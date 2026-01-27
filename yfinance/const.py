@@ -160,7 +160,7 @@ quote_summary_valid_modules = (
 )
 
 # map last updated as of 2025.12.19
-SECTOR_INDUSTY_MAPPING = {
+SECTOR_INDUSTRY_MAPPING = {
     'Basic Materials': {'Specialty Chemicals',
                         'Gold',
                         'Building Materials',
@@ -307,13 +307,13 @@ SECTOR_INDUSTY_MAPPING = {
                     'Utilities—Regulated Water',
                     'Utilities—Renewable'},
 }
-SECTOR_INDUSTY_MAPPING_LC = {}
-for k in SECTOR_INDUSTY_MAPPING.keys():
+SECTOR_INDUSTRY_MAPPING_LC = {}
+for k in SECTOR_INDUSTRY_MAPPING.keys():
     k2 = k.lower().replace('& ', '').replace('- ', '').replace(', ', ' ').replace(' ', '-')
-    SECTOR_INDUSTY_MAPPING_LC[k2] = []
-    for v in SECTOR_INDUSTY_MAPPING[k]:
+    SECTOR_INDUSTRY_MAPPING_LC[k2] = []
+    for v in SECTOR_INDUSTRY_MAPPING[k]:
         v2 = v.lower().replace('& ', '').replace('- ', '').replace(', ', ' ').replace(' ', '-')
-        SECTOR_INDUSTY_MAPPING_LC[k2].append(v2)
+        SECTOR_INDUSTRY_MAPPING_LC[k2].append(v2)
 
 # _MIC_TO_YAHOO_SUFFIX maps Market Identifier Codes (MIC) to Yahoo Finance market suffixes.
 # c.f. :
@@ -464,7 +464,7 @@ EQUITY_SCREENER_EQ_MAP = {
         "Real Estate", "Technology", "Energy", "Utilities", "Financial Services",
         "Consumer Defensive", "Consumer Cyclical"
     },
-    "industry": SECTOR_INDUSTY_MAPPING,
+    "industry": SECTOR_INDUSTRY_MAPPING,
     "peer_group": {
         "US Fund Equity Energy",
         "US CE Convertibles",

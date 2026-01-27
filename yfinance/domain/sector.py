@@ -4,7 +4,7 @@ import pandas as _pd
 from typing import Dict, Optional
 
 from ..config import YfConfig
-from ..const import SECTOR_INDUSTY_MAPPING_LC
+from ..const import SECTOR_INDUSTRY_MAPPING_LC
 from ..utils import dynamic_docstring, generate_list_table_from_dict, get_yf_logger
 
 from .domain import Domain, _QUERY_URL_
@@ -63,7 +63,7 @@ class Sector(Domain):
         self._ensure_fetched(self._top_mutual_funds)
         return self._top_mutual_funds
 
-    @dynamic_docstring({"sector_industry": generate_list_table_from_dict(SECTOR_INDUSTY_MAPPING_LC,bullets=True)})
+    @dynamic_docstring({"sector_industry": generate_list_table_from_dict(SECTOR_INDUSTRY_MAPPING_LC,bullets=True)})
     @property
     def industries(self) -> _pd.DataFrame:
         """
